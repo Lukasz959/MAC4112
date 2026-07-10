@@ -6,6 +6,13 @@ import h5py
 
 from open import open_trial
 
+# Variable names relating to sensor measurements.
+# Used laterto filter out machine tool PLC data before processing
+SENSOR_VARIABLES = {
+    "SpindleAccX", "SpindleAccY", "SpindleAccZ",
+    "PlateLFAccX", "PlateLFAccY", "PlateLFAccZ",
+    "PlateHFAccZ", "Power"
+}
 
 def extract_runs(folder, trial, key, variable):
     """Extract all runs for a specific variable."""
@@ -39,6 +46,11 @@ def extract_signal(folder, trial, key=None):
 
         variable = row["variable"]
         key = row["key"]
+
+        # Skip non-sensor variables
+        if variable not in SENSOR_VARIABLES:
+            print({f"Skipping {variable}"})
+            continue
 
         print(f"Processing {variable}")
 
