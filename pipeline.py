@@ -4,7 +4,8 @@ import numpy as np
 import pandas as pd
 import h5py
 
-from open import open_trial
+from open import open_trial 
+from open import open_all_trials
 
 # Variable names relating to sensor measurements.
 # Used laterto filter out machine tool PLC data before processing
@@ -40,16 +41,28 @@ def extract_signal(folder, trial, key=None):
     results = []
 
     # Get file structure
-    trial_info = open_trial(folder, trial, key)
+    # If trial is specified process that trial, otherwise process all
+    if trial is None:
+        trial_info = open_all_trials(folder, key)
+    else:
+        trial_info = open_trial(folder, trial, key)
+
+    current_trial = None
 
     for _, row in trial_info.iterrows():
 
+        trial = row["file"]
         variable = row["variable"]
         key = row["key"]
 
+        # Print when moving to a new trial
+        if trial != current_trial:
+            print(f"\nProcessing trial: {trial}")
+            current_trial = trial
+
         # Skip non-sensor variables
         if variable not in SENSOR_VARIABLES:
-            print({f"Skipping {variable}"})
+            print(f"Skipping {variable}")
             continue
 
         print(f"Processing {variable}")
@@ -93,7 +106,6 @@ def extract_features(results):
 
     return pd.DataFrame(features)
 
-
 def write_features(df, output_file="features.csv"):
     """Write extracted features to CSV."""
 
@@ -116,21 +128,12 @@ def main():
 
     args = parser.parse_args()
 
-
-    signals = extract_signal(
-        args.folder,
-        args.trial,
-        args.key
-    )
+    signals = extract_signal(args.folder, args.trial, args.key)
 
     df = extract_features(signals)
 
-
     if args.write:
         write_features(df)
-    else:
-        print(df)
-
 
 if __name__ == "__main__":
     main()
