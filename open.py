@@ -4,6 +4,30 @@ from pathlib import Path
 import h5py
 import pandas as pd
 
+def parse_trial_name(filename):
+    """Extract trial type and condition from filename."""
+
+    filename = Path(filename).stem
+
+    # Remove the Segmented prefix
+    name = filename.replace("Segmented_", "")
+
+    parts = name.split("_")
+
+    # Find the condition at the end of the filename
+    condition = None
+
+    for i in enumerate(parts):
+            condition = parts[1]
+            trial = parts[0]
+            break
+
+    if condition is None:
+        raise ValueError(f"Could not determine condition from file: {filename}")
+
+    return trial, condition
+
+
 def open_trial(folder, trial, key=None):
     """ Open a single .mat trial file and determine the structure of the data. """
 
@@ -40,12 +64,17 @@ def open_trial(folder, trial, key=None):
     for variable in variables:
         runs = h5_file[key][variable].shape[0]
 
-        # Store metadata
+        # Store metadata - updated so that the extracted trial and condition
+        # are also stored
+        trial_name, condition = parse_trial_name(trial)
+
         records.append({
-        "file": trial,
-        "key": key,
-        "variable": variable,
-        "runs": runs
+            "file": trial,
+            "trial": trial_name,
+            "condition": condition,
+            "key": key,
+            "variable": variable,
+            "runs": runs
         })
 
     return pd.DataFrame(records)

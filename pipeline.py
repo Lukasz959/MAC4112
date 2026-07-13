@@ -51,7 +51,9 @@ def extract_signal(folder, trial, key=None):
 
     for _, row in trial_info.iterrows():
 
-        trial = row["file"]
+        filename = row["file"]
+        trial = row["trial"]
+        condition = row["condition"]
         variable = row["variable"]
         key = row["key"]
 
@@ -69,7 +71,7 @@ def extract_signal(folder, trial, key=None):
 
         runs = extract_runs(
             folder,
-            trial,
+            filename,
             key,
             variable
         )
@@ -78,6 +80,7 @@ def extract_signal(folder, trial, key=None):
 
             results.append({
                 "trial": trial,
+                "condition": condition,
                 "run": run_number,
                 "variable": variable,
                 "signal": signal
@@ -97,6 +100,7 @@ def extract_features(results):
 
         features.append({
             "trial": result["trial"],
+            "condition": result["condition"],
             "run": result["run"],
             "variable": result["variable"],
             "mean": np.mean(signal),
@@ -108,6 +112,8 @@ def extract_features(results):
 
 def write_features(df, output_file="features.csv"):
     """Write extracted features to CSV."""
+
+    print(f"Writing features to {output_file}")
 
     df.to_csv(output_file, index=False)
 
