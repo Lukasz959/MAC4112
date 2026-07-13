@@ -15,12 +15,19 @@ SENSOR_VARIABLES = {
     "PlateHFAccZ", "Power"
 }
 
+# Account for the difference in naming style for the Machining trial
+VARIABLE_ALIASES = {
+    "SpindleX": "SpindleAccX",
+    "SpindleY": "SpindleAccY",
+    "SpindleZ": "SpindleAccZ",
+}
+
 def extract_runs(folder, trial, key, variable):
     """Extract all runs for a specific variable."""
 
     file_path = Path(folder) / trial
 
-    runs = []
+    runs = [] 
 
     with h5py.File(file_path, "r") as h5_file:
 
@@ -54,35 +61,40 @@ def extract_signal(folder, trial, key=None):
         filename = row["file"]
         trial = row["trial"]
         condition = row["condition"]
-        variable = row["variable"]
+        raw_variable = row["variable"]  # Keep original name for HDF5 lookup
         key = row["key"]
+
+        # Convert to standard variable name for filtering and downstream features
+        standard_variable = VARIABLE_ALIASES.get(raw_variable, raw_variable)
 
         # Print when moving to a new trial
         if trial != current_trial:
             print(f"\nProcessing trial: {trial}-{condition}")
             current_trial = trial
 
-        # Skip non-sensor variables
-        if variable not in SENSOR_VARIABLES:
-            print(f"Skipping {variable}")
+        # Filter using the standardized name
+        if standard_variable not in SENSOR_VARIABLES:
+            print(f"Skipping {raw_variable}")
             continue
 
-        print(f"Processing {variable}")
+        print(f"Processing {raw_variable}")
 
+        # Pass raw_variable so h5py can look up the exact key in the file
         runs = extract_runs(
             folder,
             filename,
             key,
-            variable
+            raw_variable
         )
 
         for run_number, signal in enumerate(runs, start=1):
 
+            # Append using standard_variable so your final CSV features are uniform
             results.append({
                 "trial": trial,
                 "condition": condition,
                 "run": run_number,
-                "variable": variable,
+                "variable": standard_variable,
                 "signal": signal
             })
 
