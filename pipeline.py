@@ -59,7 +59,7 @@ def extract_signal(folder, trial, key=None):
 
         # Print when moving to a new trial
         if trial != current_trial:
-            print(f"\nProcessing trial: {trial}")
+            print(f"\nProcessing trial: {trial}-{condition}")
             current_trial = trial
 
         # Skip non-sensor variables
@@ -90,25 +90,36 @@ def extract_signal(folder, trial, key=None):
 
 
 def extract_features(results):
-    """Calculate statistical features for each signal and create DataFrame."""
+    """Calculate statistical features for each run and create DataFrame."""
 
-    features = []
+    rows = {}
 
     for result in results:
 
+        # Unique identifier for each run
+        key = (
+            result["trial"],
+            result["condition"],
+            result["run"]
+        )
+
+        # Create a new row if this run hasn't been seen before
+        if key not in rows:
+            rows[key] = {
+                "trial": result["trial"],
+                "condition": result["condition"],
+                "run": result["run"]
+            }
+
         signal = result["signal"]
+        variable = result["variable"]
 
-        features.append({
-            "trial": result["trial"],
-            "condition": result["condition"],
-            "run": result["run"],
-            "variable": result["variable"],
-            "mean": np.mean(signal),
-            "rms": np.sqrt(np.mean(signal**2)),
-            "std": np.std(signal)
-        })
+        # Add features for this variable
+        rows[key][f"{variable}_mean"] = np.mean(signal)
+        rows[key][f"{variable}_rms"] = np.sqrt(np.mean(signal**2))
+        rows[key][f"{variable}_std"] = np.std(signal)
 
-    return pd.DataFrame(features)
+    return pd.DataFrame(rows.values())
 
 def write_features(df, output_file="features.csv"):
     """Write extracted features to CSV."""
