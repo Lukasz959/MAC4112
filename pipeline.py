@@ -1,8 +1,10 @@
 import argparse
 from pathlib import Path
+import time
 import numpy as np
 import pandas as pd
 import h5py
+from scipy.stats import kurtosis, skew
 
 from open import open_trial 
 from open import open_all_trials
@@ -126,11 +128,33 @@ def extract_features(results):
         signal = result["signal"]
         variable = result["variable"]
 
+        # Intermediate calculations
+        abs_signal = np.abs(signal)
+        mean_abs = np.mean(abs_signal)
+        max_abs = np.max(abs_signal)
+        rms = np.sqrt(np.mean(signal**2))
+        mean_sqrt_abs = np.mean(np.sqrt(abs_signal))
+        
+        # Avoid division by zero in calculation of factors
+        e = 1e-9
+        mean_abs_safe = mean_abs if mean_abs > 0 else e
+        rms_safe = rms if rms > 0 else e
+        mean_sqrt_abs_safe = mean_sqrt_abs if mean_sqrt_abs > 0 else e
+
         # Add features for this variable
         rows[key][f"{variable}_mean"] = np.mean(signal)
-        rows[key][f"{variable}_rms"] = np.sqrt(np.mean(signal**2))
+        rows[key][f"{variable}_rms"] = rms
         rows[key][f"{variable}_std"] = np.std(signal)
+        rows[key][f"{variable}_kurtosis"] = kurtosis(signal)
+        rows[key][f"{variable}_skewness"] = skew(signal)
+        rows[key][f"{variable}_peak_to_peak"] = np.ptp(signal)
+        rows[key][f"{variable}_energy"] = np.mean(signal**2)
 
+        # Add factors
+        rows[key][f"{variable}_crest_factor"] = max_abs / rms_safe
+        rows[key][f"{variable}_shape_factor"] = rms / mean_abs_safe
+        rows[key][f"{variable}_impulse_factor"] = max_abs / mean_abs_safe
+        rows[key][f"{variable}_margin_factor"] = max_abs / (mean_sqrt_abs_safe**2)
     return pd.DataFrame(rows.values())
 
 def write_features(df, output_file="features.csv"):
@@ -157,12 +181,18 @@ def main():
 
     args = parser.parse_args()
 
+    start_time = time.perf_counter()
+
     signals = extract_signal(args.folder, args.trial, args.key)
 
     df = extract_features(signals)
 
     if args.write:
         write_features(df)
+
+    end_time = time.perf_counter()
+    elapsed_time = end_time - start_time
+    print(f"Total Execution Time: {elapsed_time:.2f} seconds")
 
 if __name__ == "__main__":
     main()
