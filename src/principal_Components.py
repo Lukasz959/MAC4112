@@ -129,7 +129,7 @@ def plot_pca(X_pca, y_train, pcas):
     Scatter plots are saved in the 'plots' folder.
     """
 
-    save_dir = Path("../plots")
+    save_dir = Path("plots")
     save_dir.mkdir(exist_ok=True)
 
     for trial_name, X_trial_pca in X_pca.items():
@@ -164,7 +164,7 @@ def plot_pca(X_pca, y_train, pcas):
 
 def main():
 
-    X, y = prepare_data("../features.csv")
+    X, y = prepare_data("features.csv")
 
     results = compute_pca(X, y)
 

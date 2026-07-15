@@ -145,10 +145,13 @@ def extract_features(results):
         rows[key][f"{variable}_mean"] = np.mean(signal)
         rows[key][f"{variable}_rms"] = rms
         rows[key][f"{variable}_std"] = np.std(signal)
-        rows[key][f"{variable}_kurtosis"] = kurtosis(signal)
-        rows[key][f"{variable}_skewness"] = skew(signal)
         rows[key][f"{variable}_peak_to_peak"] = np.ptp(signal)
         rows[key][f"{variable}_energy"] = np.mean(signal**2)
+
+        # Some runs return NaN skewness and kurtosis if std is zero
+        # Replace NaNs with zeros to prevent filtering out these values during PCA
+        rows[key][f"{variable}_kurtosis"] = np.nan_to_num(kurtosis(signal))
+        rows[key][f"{variable}_skewness"] = np.nan_to_num(skew(signal))
 
         # Add factors
         rows[key][f"{variable}_crest_factor"] = max_abs / rms_safe
